@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface ICarDocument extends Document {
+export interface ICar {
   name: string;
   model: string;
   type: string;
@@ -9,7 +9,7 @@ export interface ICarDocument extends Document {
   available: boolean;
 }
 
-const carSchema = new Schema<ICarDocument>(
+const carSchema = new Schema<ICar>(
   {
     name: {
       type: String,
@@ -44,4 +44,4 @@ const carSchema = new Schema<ICarDocument>(
   },
 );
 
-export const CarModel = mongoose.model<ICarDocument>("Car", carSchema);
+export const CarModel = mongoose.model<ICar>("Car", carSchema);

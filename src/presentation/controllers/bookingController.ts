@@ -9,7 +9,7 @@ import { UserModel } from "../../infrastructure/models/UserModel";
 const calculateDays = (startDate: Date, endDate: Date): number => {
   const timeDifference = endDate.getTime() - startDate.getTime();
   const days = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
-  return days;
+  return days > 0 ? days : 1;
 };
 
 export const createBooking = async (
@@ -79,7 +79,7 @@ export const createBooking = async (
       booking,
     });
   } catch (error) {
-    logger.error("Failed to create registered user booking");
+    logger.error(`Failed to create registered user booking: ${error}`);
     res.status(500).json({ message: "Server error while creating booking" });
   }
 };
@@ -96,6 +96,11 @@ export const createGuestBooking = async (
         message:
           "guestName, guestEmail, carId, startDate and endDate are required",
       });
+      return;
+    }
+
+    if (!guestEmail.includes("@")) {
+      res.status(400).json({ message: "Invalid email format" });
       return;
     }
 
@@ -153,7 +158,7 @@ export const createGuestBooking = async (
       booking,
     });
   } catch (error) {
-    logger.error("Failed to create guest booking");
+    logger.error(`Failed to create guest booking: ${error}`);
     res
       .status(500)
       .json({ message: "Server error while creating guest booking" });
@@ -168,7 +173,7 @@ export const getAllCars = async (
     const cars = await CarModel.find();
     res.status(200).json(cars);
   } catch (error) {
-    logger.error("Failed to fetch cars");
+    logger.error(`Failed to fetch cars: ${error}`);
     res.status(500).json({ message: "Server error while fetching cars" });
   }
 };
@@ -180,6 +185,13 @@ export const addCar = async (req: Request, res: Response): Promise<void> => {
     if (!name || !model || !type || !pricePerDay || !seats) {
       res.status(400).json({
         message: "name, model, type, pricePerDay and seats are required",
+      });
+      return;
+    }
+
+    if (pricePerDay <= 0 || seats <= 0) {
+      res.status(400).json({
+        message: "pricePerDay and seats must be greater than 0",
       });
       return;
     }
@@ -198,7 +210,7 @@ export const addCar = async (req: Request, res: Response): Promise<void> => {
       car,
     });
   } catch (error) {
-    logger.error("Failed to add car");
+    logger.error(`Failed to add car: ${error}`);
     res.status(500).json({ message: "Server error while adding car" });
   }
 };
@@ -214,7 +226,7 @@ export const getAllBookings = async (
 
     res.status(200).json(bookings);
   } catch (error) {
-    logger.error("Failed to fetch all bookings");
+    logger.error(`Failed to fetch all bookings: ${error}`);
     res.status(500).json({ message: "Server error while fetching bookings" });
   }
 };
@@ -224,7 +236,7 @@ export const approveBooking = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const bookingId = req.params.bookingId as string;
 
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
       res.status(400).json({ message: "Invalid booking ID" });
@@ -235,6 +247,11 @@ export const approveBooking = async (
 
     if (!booking) {
       res.status(404).json({ message: "Booking not found" });
+      return;
+    }
+
+    if (booking.status === "approved") {
+      res.status(400).json({ message: "Booking already approved" });
       return;
     }
 
@@ -248,7 +265,7 @@ export const approveBooking = async (
       booking,
     });
   } catch (error) {
-    logger.error("Failed to approve booking");
+    logger.error(`Failed to approve booking: ${error}`);
     res.status(500).json({ message: "Server error while approving booking" });
   }
 };
@@ -258,7 +275,7 @@ export const declineBooking = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const bookingId = req.params.bookingId as string;
 
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
       res.status(400).json({ message: "Invalid booking ID" });
@@ -272,6 +289,11 @@ export const declineBooking = async (
       return;
     }
 
+    if (booking.status === "declined") {
+      res.status(400).json({ message: "Booking already declined" });
+      return;
+    }
+
     booking.status = "declined";
     await booking.save();
 
@@ -282,8 +304,113 @@ export const declineBooking = async (
       booking,
     });
   } catch (error) {
-    logger.error("Failed to decline booking");
+    logger.error(`Failed to decline booking: ${error}`);
     res.status(500).json({ message: "Server error while declining booking" });
+  }
+};
+
+export const updateBookingDates = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const bookingId = req.params.bookingId as string;
+    const { startDate, endDate } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      res.status(400).json({ message: "Invalid booking ID" });
+      return;
+    }
+
+    if (!startDate || !endDate) {
+      res.status(400).json({ message: "startDate and endDate are required" });
+      return;
+    }
+
+    const booking = await BookingModel.findById(bookingId);
+
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found" });
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      res.status(400).json({ message: "End date must be after start date" });
+      return;
+    }
+
+    const conflictingBooking = await BookingModel.findOne({
+      _id: { $ne: bookingId },
+      carId: booking.carId,
+      status: { $in: ["pending", "approved"] },
+      startDate: { $lt: end },
+      endDate: { $gt: start },
+    });
+
+    if (conflictingBooking) {
+      res
+        .status(400)
+        .json({ message: "Car is already booked for the selected dates" });
+      return;
+    }
+
+    const car = await CarModel.findById(booking.carId);
+
+    if (!car) {
+      res.status(404).json({ message: "Car not found" });
+      return;
+    }
+
+    const totalDays = calculateDays(start, end);
+
+    booking.startDate = start;
+    booking.endDate = end;
+    booking.totalPrice = totalDays * car.pricePerDay;
+
+    await booking.save();
+
+    logger.info(`Booking updated: ${bookingId}`);
+
+    res.status(200).json({
+      message: "Booking updated successfully",
+      booking,
+    });
+  } catch (error) {
+    logger.error(`Failed to update booking: ${error}`);
+    res.status(500).json({ message: "Server error while updating booking" });
+  }
+};
+
+export const deleteBooking = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const bookingId = req.params.bookingId as string;
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      res.status(400).json({ message: "Invalid booking ID" });
+      return;
+    }
+
+    const booking = await BookingModel.findByIdAndDelete(bookingId);
+
+    if (!booking) {
+      res.status(404).json({ message: "Booking not found" });
+      return;
+    }
+
+    logger.info(`Booking deleted: ${bookingId}`);
+
+    res.status(200).json({
+      message: "Booking deleted successfully",
+    });
+  } catch (error) {
+    logger.error(`Failed to delete booking: ${error}`);
+    res.status(500).json({ message: "Server error while deleting booking" });
   }
 };
 
@@ -319,7 +446,7 @@ export const getAdminStats = async (
       totalRevenue,
     });
   } catch (error) {
-    logger.error("Failed to fetch admin statistics");
+    logger.error(`Failed to fetch admin statistics: ${error}`);
     res.status(500).json({ message: "Server error while fetching statistics" });
   }
 };
