@@ -41,3 +41,25 @@ export const HTTP_METHODS = {
   PUT: 'PUT',
   DELETE: 'DELETE',
 } as const;
+
+// API Endpoint Methods and Paths
+export const API_ROUTES = [
+  // Auth routes
+  { method: HTTP_METHODS.POST, path: API_ENDPOINTS.AUTH.REGISTER, description: 'Register a new user' },
+  { method: HTTP_METHODS.POST, path: API_ENDPOINTS.AUTH.LOGIN, description: 'Login user' },
+
+  // Booking routes
+  { method: HTTP_METHODS.GET, path: API_ENDPOINTS.BOOKINGS.GET_CARS, description: 'Get all cars' },
+  { method: HTTP_METHODS.POST, path: API_ENDPOINTS.BOOKINGS.ADD_CAR, description: 'Add a new car' },
+  { method: HTTP_METHODS.POST, path: API_ENDPOINTS.BOOKINGS.CREATE_GUEST_BOOKING, description: 'Create guest booking' },
+  { method: HTTP_METHODS.POST, path: API_ENDPOINTS.BOOKINGS.CREATE_BOOKING, description: 'Create booking (authenticated)' },
+  { method: HTTP_METHODS.GET, path: API_ENDPOINTS.BOOKINGS.GET_ALL_BOOKINGS, description: 'Get all bookings (admin)' },
+  { method: HTTP_METHODS.PUT, path: API_ENDPOINTS.BOOKINGS.APPROVE_BOOKING(''), description: 'Approve booking (admin)' },
+  { method: HTTP_METHODS.PUT, path: API_ENDPOINTS.BOOKINGS.DECLINE_BOOKING(''), description: 'Decline booking (admin)' },
+  { method: HTTP_METHODS.PUT, path: API_ENDPOINTS.BOOKINGS.UPDATE_BOOKING_DATES(''), description: 'Update booking dates (admin)' },
+  { method: HTTP_METHODS.DELETE, path: API_ENDPOINTS.BOOKINGS.DELETE_BOOKING(''), description: 'Delete booking (admin)' },
+  { method: HTTP_METHODS.GET, path: API_ENDPOINTS.BOOKINGS.GET_ADMIN_STATS, description: 'Get admin statistics' },
+
+  // Root
+  { method: HTTP_METHODS.GET, path: API_ENDPOINTS.ROOT, description: 'API health check' },
+];
