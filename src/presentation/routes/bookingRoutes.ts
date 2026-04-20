@@ -16,7 +16,7 @@ import { adminOnly, protect } from "../middleware/authMiddleware";
 const router = Router();
 
 router.get("/cars", getAllCars);
-router.post("/cars", addCar);
+router.post("/cars", protect, adminOnly, addCar);
 
 router.post("/guest", createGuestBooking);
 router.post("/", protect, createBooking);

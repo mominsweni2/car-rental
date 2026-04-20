@@ -34,14 +34,17 @@ describe("Booking API", () => {
   });
 
   it("should add a car", async () => {
-    const res = await request(app).post("/api/bookings/cars").send({
-      name: "Honda",
-      model: "Civic",
-      type: "Sedan",
-      pricePerDay: 90,
-      seats: 5,
-      available: true,
-    });
+    const res = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Honda",
+        model: "Civic",
+        type: "Sedan",
+        pricePerDay: 90,
+        seats: 5,
+        available: true,
+      });
 
     expect(res.statusCode).toBe(201);
     expect(res.body.car).toBeDefined();
@@ -49,25 +52,60 @@ describe("Booking API", () => {
   }, 15000);
 
   it("should reject add car with missing fields", async () => {
-    const res = await request(app).post("/api/bookings/cars").send({
-      name: "Toyota",
-      model: "Corolla",
-    });
+    const res = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Toyota",
+        model: "Corolla",
+      });
 
     expect(res.statusCode).toBe(400);
   }, 15000);
 
   it("should reject add car with invalid price or seats", async () => {
+    const res = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Bad Car",
+        model: "Bad Model",
+        type: "Sedan",
+        pricePerDay: 0,
+        seats: 0,
+        available: true,
+      });
+
+    expect(res.statusCode).toBe(400);
+  }, 15000);
+
+  it("should block add car without token", async () => {
     const res = await request(app).post("/api/bookings/cars").send({
-      name: "Bad Car",
-      model: "Bad Model",
+      name: "No Auth Car",
+      model: "Blocked",
       type: "Sedan",
-      pricePerDay: 0,
-      seats: 0,
+      pricePerDay: 50,
+      seats: 4,
       available: true,
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(401);
+  }, 15000);
+
+  it("should block normal user from adding a car", async () => {
+    const res = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({
+        name: "User Car",
+        model: "Blocked",
+        type: "Sedan",
+        pricePerDay: 50,
+        seats: 4,
+        available: true,
+      });
+
+    expect(res.statusCode).toBe(403);
   }, 15000);
 
   it("should create booking", async () => {
@@ -339,14 +377,17 @@ describe("Booking API", () => {
   }, 15000);
 
   it("should reject booking when car is unavailable", async () => {
-    const carRes = await request(app).post("/api/bookings/cars").send({
-      name: "Unavailable Car",
-      model: "Model X",
-      type: "SUV",
-      pricePerDay: 100,
-      seats: 5,
-      available: false,
-    });
+    const carRes = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Unavailable Car",
+        model: "Model X",
+        type: "SUV",
+        pricePerDay: 100,
+        seats: 5,
+        available: false,
+      });
 
     const unavailableCarId = carRes.body.car._id;
 
@@ -363,14 +404,17 @@ describe("Booking API", () => {
   }, 15000);
 
   it("should reject guest booking when car is unavailable", async () => {
-    const carRes = await request(app).post("/api/bookings/cars").send({
-      name: "Unavailable Guest Car",
-      model: "Model Y",
-      type: "SUV",
-      pricePerDay: 110,
-      seats: 5,
-      available: false,
-    });
+    const carRes = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Unavailable Guest Car",
+        model: "Model Y",
+        type: "SUV",
+        pricePerDay: 110,
+        seats: 5,
+        available: false,
+      });
 
     const unavailableCarId = carRes.body.car._id;
 

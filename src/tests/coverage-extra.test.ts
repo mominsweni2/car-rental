@@ -31,14 +31,17 @@ describe("Coverage Extra API", () => {
 
     adminToken = adminLogin.body.token;
 
-    const carRes = await request(app).post("/api/bookings/cars").send({
-      name: "Toyota",
-      model: "Yaris",
-      type: "Sedan",
-      pricePerDay: 70,
-      seats: 5,
-      available: true,
-    });
+    const carRes = await request(app)
+      .post("/api/bookings/cars")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Toyota",
+        model: "Yaris",
+        type: "Sedan",
+        pricePerDay: 70,
+        seats: 5,
+        available: true,
+      });
 
     carId = carRes.body.car._id;
 

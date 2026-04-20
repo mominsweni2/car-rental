@@ -15,7 +15,7 @@ export const registerUser = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       res
@@ -37,7 +37,7 @@ export const registerUser = async (
       name,
       email,
       password: hashedPassword,
-      role: role || "user",
+      role: "user",
     });
 
     logger.info(`User registered: ${email}`);
